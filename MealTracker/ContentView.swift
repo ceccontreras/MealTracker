@@ -70,6 +70,16 @@ struct ContentView: View {
             }
             .navigationTitle("Today")
             .toolbar {
+                // 🔹 New: History button on the left
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        HistoryView()
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                    }
+                }
+                
+                // Existing: Add (+) button on the right
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingAddFood = true
@@ -83,12 +93,12 @@ struct ContentView: View {
                     entries.append(newEntry)
                 }
             }
-            // 🔹 Load from JSON when the view appears
             .onAppear {
+                // Load ALL entries from JSON
                 entries = FoodStorage.shared.loadEntries()
             }
-            // 🔹 Save to JSON every time entries change
             .onChange(of: entries) { oldValue, newValue in
+                // Save ALL entries to JSON whenever anything changes
                 FoodStorage.shared.saveEntries(newValue)
             }
         }
