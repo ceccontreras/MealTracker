@@ -1,22 +1,20 @@
-//
-//  ContentView.swift
-//  MealTracker
-//
-//  Created by Carlos Campos on 12/3/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    @State private var entries: [FoodEntry] = []
+    @State private var allEntries: [FoodEntry] = []
     @State private var showingAddFood = false
 
+    private var todayEntries: [FoodEntry] {
+        let calendar = Calendar.current
+        return allEntries.filter { calendar.isDateInToday($0.date) }
+    }
+
     var totalCalories: Int {
-        entries.map { $0.calories }.reduce(0, +)
+        todayEntries.reduce(0) { $0 + $1.calories }
     }
 
     var totalProtein: Int {
-        entries.map { $0.protein }.reduce(0, +)
+        todayEntries.reduce(0) { $0 + $1.protein }
     }
 
     var body: some View {
@@ -46,14 +44,14 @@ struct ContentView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
 
-                if entries.isEmpty {
+                if todayEntries.isEmpty {
                     Text("No entries yet. Tap + to add your first meal.")
                         .foregroundStyle(.secondary)
                         .padding()
                     Spacer()
                 } else {
                     List {
-                        ForEach(entries) { entry in
+                        ForEach(todayEntries) { entry in
                             VStack(alignment: .leading) {
                                 Text(entry.name)
                                     .font(.headline)
@@ -63,14 +61,14 @@ struct ContentView: View {
                             }
                         }
                         .onDelete { offsets in
-                            entries.remove(atOffsets: offsets)
+                            let idsToDelete = offsets.map { todayEntries[$0].id }
+                            allEntries.removeAll { idsToDelete.contains($0.id) }
                         }
                     }
                 }
             }
             .navigationTitle("Today")
             .toolbar {
-                // 🔹 New: History button on the left
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
                         HistoryView()
@@ -78,8 +76,7 @@ struct ContentView: View {
                         Image(systemName: "clock.arrow.circlepath")
                     }
                 }
-                
-                // Existing: Add (+) button on the right
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingAddFood = true
@@ -90,15 +87,13 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingAddFood) {
                 AddFoodView { newEntry in
-                    entries.append(newEntry)
+                    allEntries.append(newEntry)
                 }
             }
             .onAppear {
-                // Load ALL entries from JSON
-                entries = FoodStorage.shared.loadEntries()
+                allEntries = FoodStorage.shared.loadEntries()
             }
-            .onChange(of: entries) { oldValue, newValue in
-                // Save ALL entries to JSON whenever anything changes
+            .onChange(of: allEntries) { oldValue, newValue in
                 FoodStorage.shared.saveEntries(newValue)
             }
         }
