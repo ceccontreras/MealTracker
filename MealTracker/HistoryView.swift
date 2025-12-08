@@ -1,17 +1,10 @@
-//
-//  HistoryView.swift
-//  MealTracker
-//
-//  Created by Carlos Campos on 12/4/25.
-//
-
 import SwiftUI
 
 struct HistoryView: View {
     @State private var allEntries: [FoodEntry] = []
     
-    // Group entries by day and compute totals
-    private var groupedByDay: [(date: Date, totalCalories: Int, totalProtein: Int)] {
+    // Group entries by day
+    private var groupedByDay: [(date: Date, entries: [FoodEntry])] {
         let calendar = Calendar.current
         
         let groups = Dictionary(grouping: allEntries) { entry in
@@ -19,11 +12,7 @@ struct HistoryView: View {
         }
         
         return groups
-            .map { (date, entries) in
-                let totalCalories = entries.reduce(0) { $0 + $1.calories }
-                let totalProtein = entries.reduce(0) { $0 + $1.protein }
-                return (date: date, totalCalories: totalCalories, totalProtein: totalProtein)
-            }
+            .map { (date: $0.key, entries: $0.value) }
             .sorted { $0.date > $1.date } // Most recent first
     }
     
@@ -39,20 +28,26 @@ struct HistoryView: View {
                 Text("No history yet. Log some meals first.")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(groupedByDay, id: \.date) { day in
-                    VStack(alignment: .leading) {
-                        Text(Self.dateFormatter.string(from: day.date))
-                            .font(.headline)
-                        Text("\(day.totalCalories) kcal • \(day.totalProtein) g protein")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                ForEach(groupedByDay, id: \.date) { group in
+                    NavigationLink {
+                        DayDetailView(date: group.date, entries: group.entries)
+                    } label: {
+                        let totalCalories = group.entries.reduce(0) { $0 + $1.calories }
+                        let totalProtein = group.entries.reduce(0) { $0 + $1.protein }
+                        
+                        VStack(alignment: .leading) {
+                            Text(Self.dateFormatter.string(from: group.date))
+                                .font(.headline)
+                            Text("\(totalCalories) kcal • \(totalProtein) g protein")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
         }
         .navigationTitle("History")
         .onAppear {
-            // Load all saved entries when History appears
             allEntries = FoodStorage.shared.loadEntries()
         }
     }

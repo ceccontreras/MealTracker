@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct ContentView: View {
+    // MARK: - Goals (change these numbers whenever you want)
+    private let calorieGoal: Int = 2300
+    private let proteinGoal: Int = 150
+
     @State private var allEntries: [FoodEntry] = []
     @State private var showingAddFood = false
 
@@ -17,33 +21,57 @@ struct ContentView: View {
         todayEntries.reduce(0) { $0 + $1.protein }
     }
 
+    // MARK: - Progress values (0.0 to 1.0)
+
+    private var calorieProgress: Double {
+        guard calorieGoal > 0 else { return 0 }
+        return min(Double(totalCalories) / Double(calorieGoal), 1.0)
+    }
+
+    private var proteinProgress: Double {
+        guard proteinGoal > 0 else { return 0 }
+        return min(Double(totalProtein) / Double(proteinGoal), 1.0)
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("Calories")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(totalCalories)")
-                            .font(.title2)
-                            .bold()
-                    }
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with totals + progress bars
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Calories")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("\(totalCalories)")
+                                .font(.title2)
+                                .bold()
+                            Text("Goal: \(calorieGoal) kcal")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            ProgressView(value: calorieProgress)
+                        }
 
-                    Spacer()
+                        Spacer()
 
-                    VStack(alignment: .leading) {
-                        Text("Protein")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(totalProtein) g")
-                            .font(.title2)
-                            .bold()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Protein")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("\(totalProtein) g")
+                                .font(.title2)
+                                .bold()
+                            Text("Goal: \(proteinGoal) g")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            ProgressView(value: proteinProgress)
+                        }
                     }
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
 
+                // List of today's entries
                 if todayEntries.isEmpty {
                     Text("No entries yet. Tap + to add your first meal.")
                         .foregroundStyle(.secondary)
