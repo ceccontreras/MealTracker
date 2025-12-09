@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct ContentView: View {
-    // MARK: - Goals (change these numbers whenever you want)
-    private let calorieGoal: Int = 2300
-    private let proteinGoal: Int = 150
+    // MARK: - Goals stored in AppStorage (persist between launches)
+    @AppStorage("calorieGoal") private var calorieGoal: Int = 2300
+    @AppStorage("proteinGoal") private var proteinGoal: Int = 150
 
     @State private var allEntries: [FoodEntry] = []
     @State private var showingAddFood = false
@@ -22,7 +22,6 @@ struct ContentView: View {
     }
 
     // MARK: - Progress values (0.0 to 1.0)
-
     private var calorieProgress: Double {
         guard calorieGoal > 0 else { return 0 }
         return min(Double(totalCalories) / Double(calorieGoal), 1.0)
@@ -97,6 +96,7 @@ struct ContentView: View {
             }
             .navigationTitle("Today")
             .toolbar {
+                // History button (left)
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
                         HistoryView()
@@ -105,7 +105,15 @@ struct ContentView: View {
                     }
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
+                // Goals + Add buttons (right)
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    NavigationLink {
+                        GoalSettingsView(calorieGoal: $calorieGoal,
+                                         proteinGoal: $proteinGoal)
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+
                     Button {
                         showingAddFood = true
                     } label: {
