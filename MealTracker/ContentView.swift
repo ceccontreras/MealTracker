@@ -32,66 +32,159 @@ struct ContentView: View {
         return min(Double(totalProtein) / Double(proteinGoal), 1.0)
     }
 
+    // MARK: - Weekly summary (last 7 days)
+
+    private var weeklySummaries: [(date: Date, meetsGoal: Bool)] {
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+
+        // Build an array of last 7 days (today, yesterday, etc.), then reverse so oldest first
+        let days: [(Date, Bool)] = (0..<7).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: todayStart) else { return nil }
+            let entriesForDay = allEntries.filter { calendar.isDate($0.date, inSameDayAs: day) }
+
+            let dayCalories = entriesForDay.reduce(0) { $0 + $1.calories }
+            let dayProtein = entriesForDay.reduce(0) { $0 + $1.protein }
+
+            let meets = dayCalories >= calorieGoal && dayProtein >= proteinGoal
+            return (day, meets)
+        }
+
+        return days.reversed()
+    }
+
+    private static let weekdayFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "E" // Mon, Tue, Wed...
+        return df
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "d" // 1,2,3...
+        return df
+    }()
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header with totals + progress bars
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Calories")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("\(totalCalories)")
-                                .font(.title2)
-                                .bold()
-                            Text("Goal: \(calorieGoal) kcal")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            ProgressView(value: calorieProgress)
+            ZStack {
+                // MAIN CONTENT
+                VStack(alignment: .leading, spacing: 16) {
+                    // Header with totals + progress bars
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Calories")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(totalCalories)")
+                                    .font(.title2)
+                                    .bold()
+                                Text("Goal: \(calorieGoal) kcal")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                ProgressView(value: calorieProgress)
+                            }
+
+                            Spacer()
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Protein")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(totalProtein) g")
+                                    .font(.title2)
+                                    .bold()
+                                Text("Goal: \(proteinGoal) g")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                ProgressView(value: proteinProgress)
+                            }
                         }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
 
+                    // Mini "this week" calendar
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("This week")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(weeklySummaries, id: \.date) { day in
+                                    VStack(spacing: 4) {
+                                        Text(Self.weekdayFormatter.string(from: day.date))
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+
+                                        ZStack {
+                                            Circle()
+                                                .strokeBorder(
+                                                    day.meetsGoal ? Color.green : Color.secondary.opacity(0.3),
+                                                    lineWidth: 2
+                                                )
+                                                .frame(width: 30, height: 30)
+
+                                            if day.meetsGoal {
+                                                Image(systemName: "checkmark")
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.green)
+                                            } else {
+                                                Text(Self.dayFormatter.string(from: day.date))
+                                                    .font(.caption2)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom, 4)
+                        }
+                    }
+
+                    // List of today's entries
+                    if todayEntries.isEmpty {
+                        Text("No entries yet. Use the button below to add your first meal.")
+                            .foregroundStyle(.secondary)
+                            .padding()
                         Spacer()
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Protein")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("\(totalProtein) g")
-                                .font(.title2)
-                                .bold()
-                            Text("Goal: \(proteinGoal) g")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            ProgressView(value: proteinProgress)
+                    } else {
+                        List {
+                            ForEach(todayEntries) { entry in
+                                VStack(alignment: .leading) {
+                                    Text(entry.name)
+                                        .font(.headline)
+                                    Text("\(entry.calories) kcal • \(entry.protein) g • \(entry.mealType.displayName)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .onDelete { offsets in
+                                let idsToDelete = offsets.map { todayEntries[$0].id }
+                                allEntries.removeAll { idsToDelete.contains($0.id) }
+                            }
                         }
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top, 8)
 
-                // List of today's entries
-                if todayEntries.isEmpty {
-                    Text("No entries yet. Tap + to add your first meal.")
-                        .foregroundStyle(.secondary)
-                        .padding()
+                // FLOATING ADD MEAL BUTTON (bottom, centered)
+                VStack {
                     Spacer()
-                } else {
-                    List {
-                        ForEach(todayEntries) { entry in
-                            VStack(alignment: .leading) {
-                                Text(entry.name)
-                                    .font(.headline)
-                                Text("\(entry.calories) kcal • \(entry.protein) g • \(entry.mealType.displayName)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .onDelete { offsets in
-                            let idsToDelete = offsets.map { todayEntries[$0].id }
-                            allEntries.removeAll { idsToDelete.contains($0.id) }
-                        }
+                    Button {
+                        showingAddFood = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 60, height: 60)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
                     }
+                    .padding(.bottom, 24)
                 }
             }
             .navigationTitle("Today")
@@ -105,19 +198,15 @@ struct ContentView: View {
                     }
                 }
 
-                // Goals + Add buttons (right)
-                ToolbarItemGroup(placement: .topBarTrailing) {
+                // Only the Goals button in the top-right now
+                ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
-                        GoalSettingsView(calorieGoal: $calorieGoal,
-                                         proteinGoal: $proteinGoal)
+                        GoalSettingsView(
+                            calorieGoal: $calorieGoal,
+                            proteinGoal: $proteinGoal
+                        )
                     } label: {
                         Image(systemName: "slider.horizontal.3")
-                    }
-
-                    Button {
-                        showingAddFood = true
-                    } label: {
-                        Image(systemName: "plus")
                     }
                 }
             }
