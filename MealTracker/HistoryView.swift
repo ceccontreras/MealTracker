@@ -30,7 +30,8 @@ struct HistoryView: View {
             } else {
                 ForEach(groupedByDay, id: \.date) { group in
                     NavigationLink {
-                        DayDetailView(date: group.date, entries: group.entries)
+                        // Pass only the date now
+                        DayDetailView(date: group.date)
                     } label: {
                         let totalCalories = group.entries.reduce(0) { $0 + $1.calories }
                         let totalProtein = group.entries.reduce(0) { $0 + $1.protein }
