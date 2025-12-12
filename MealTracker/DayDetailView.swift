@@ -2,45 +2,47 @@ import SwiftUI
 
 struct DayDetailView: View {
     let date: Date
-    
+
     @State private var allEntries: [FoodEntry] = []
+
+    // Editing state
     @State private var editingEntry: FoodEntry? = nil
     @State private var editCalories: String = ""
     @State private var editProtein: String = ""
-    
+    @State private var editName: String = ""
+    @State private var editMealType: MealType = .breakfast
+
     private static let dateFormatter: DateFormatter = {
         let df = DateFormatter()
         df.dateStyle = .full
         return df
     }()
-    
+
     private var entriesForDay: [FoodEntry] {
         let calendar = Calendar.current
         return allEntries.filter { calendar.isDate($0.date, inSameDayAs: date) }
     }
-    
+
     private var totalCalories: Int {
         entriesForDay.reduce(0) { $0 + $1.calories }
     }
-    
+
     private var totalProtein: Int {
         entriesForDay.reduce(0) { $0 + $1.protein }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header with date + totals
             VStack(alignment: .leading, spacing: 4) {
                 Text(Self.dateFormatter.string(from: date))
-                    .font(.title3)
-                    .bold()
+                    .font(.title3).bold()
                 Text("\(totalCalories) kcal • \(totalProtein) g protein")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal)
             .padding(.top, 8)
-            
+
             if entriesForDay.isEmpty {
                 Text("No entries for this day.")
                     .foregroundStyle(.secondary)
@@ -56,12 +58,11 @@ struct DayDetailView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        .contentShape(Rectangle()) // make full row tappable
+                        .contentShape(Rectangle())
                         .onTapGesture {
-                            // Start editing this entry
+                            // ONLY set the selected entry.
+                            // The sheet will load edit fields from `entry` in .onAppear.
                             editingEntry = entry
-                            editCalories = String(entry.calories)
-                            editProtein = String(entry.protein)
                         }
                     }
                 }
@@ -72,24 +73,32 @@ struct DayDetailView: View {
         .onAppear {
             allEntries = FoodStorage.shared.loadEntries()
         }
-        // Sheet for editing calories & protein
         .sheet(item: $editingEntry) { entry in
             NavigationStack {
                 Form {
-                    Section("Meal") {
-                        Text(entry.name)
+                    Section("Meal name") {
+                        TextField("Name", text: $editName)
                     }
-                    
+
+                    Section("Meal type") {
+                        Picker("Meal type", selection: $editMealType) {
+                            ForEach(MealType.allCases, id: \.self) { type in
+                                Text(type.displayName).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
                     Section("Calories") {
                         TextField("Calories", text: $editCalories)
                             .keyboardType(.numberPad)
                     }
-                    
+
                     Section("Protein (g)") {
                         TextField("Protein", text: $editProtein)
                             .keyboardType(.numberPad)
                     }
-                    
+
                     Section {
                         Button("Save changes") {
                             saveChanges(for: entry)
@@ -105,31 +114,35 @@ struct DayDetailView: View {
                         }
                     }
                 }
+                // This is the key fix:
+                // Load the edit fields from the sheet’s `entry`
+                .onAppear {
+                    editName = entry.name
+                    editCalories = String(entry.calories)
+                    editProtein = String(entry.protein)
+                    editMealType = entry.mealType
+                }
             }
         }
     }
-    
-    // MARK: - Helpers
-    
+
     private func saveChanges(for entry: FoodEntry) {
-        guard
-            let newCalories = Int(editCalories),
-            let newProtein = Int(editProtein)
-        else {
-            // Could add validation UI later
-            return
-        }
-        
-        // Update in the global list
-        if let index = allEntries.firstIndex(where: { $0.id == entry.id }) {
-            allEntries[index].calories = newCalories
-            allEntries[index].protein = newProtein
-        }
-        
-        // Persist to disk
+        guard let newCalories = Int(editCalories),
+              let newProtein = Int(editProtein),
+              !editName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return }
+
+        let updated = FoodEntry(
+            id: entry.id,
+            name: editName,
+            calories: newCalories,
+            protein: newProtein,
+            mealType: editMealType,
+            date: entry.date
+        )
+
+        allEntries = allEntries.map { $0.id == entry.id ? updated : $0 }
         FoodStorage.shared.saveEntries(allEntries)
-        
-        // Close sheet
         editingEntry = nil
     }
 }
