@@ -33,18 +33,16 @@ struct ContentView: View {
     }
 
     // MARK: - Weekly summary (last 7 days)
-
     private var weeklySummaries: [(date: Date, meetsGoal: Bool)] {
         let calendar = Calendar.current
         let todayStart = calendar.startOfDay(for: Date())
 
-        // Build an array of last 7 days (today, yesterday, etc.), then reverse so oldest first
         let days: [(Date, Bool)] = (0..<7).compactMap { offset in
             guard let day = calendar.date(byAdding: .day, value: -offset, to: todayStart) else { return nil }
             let entriesForDay = allEntries.filter { calendar.isDate($0.date, inSameDayAs: day) }
 
             let dayCalories = entriesForDay.reduce(0) { $0 + $1.calories }
-            let dayProtein = entriesForDay.reduce(0) { $0 + $1.protein }
+            let dayProtein  = entriesForDay.reduce(0) { $0 + $1.protein }
 
             let meets = dayCalories >= calorieGoal && dayProtein >= proteinGoal
             return (day, meets)
@@ -55,141 +53,167 @@ struct ContentView: View {
 
     private static let weekdayFormatter: DateFormatter = {
         let df = DateFormatter()
-        df.dateFormat = "E" // Mon, Tue, Wed...
+        df.dateFormat = "E"
         return df
     }()
 
     private static let dayFormatter: DateFormatter = {
         let df = DateFormatter()
-        df.dateFormat = "d" // 1,2,3...
+        df.dateFormat = "d"
         return df
     }()
+
+    // MARK: - Extracted subviews to help the type-checker
+    @ViewBuilder
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Calories")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(totalCalories)")
+                        .font(.title2)
+                        .bold()
+                    Text("Goal: \(calorieGoal) kcal")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    ProgressView(value: calorieProgress)
+                }
+
+                Spacer()
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Protein")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(totalProtein) g")
+                        .font(.title2)
+                        .bold()
+                    Text("Goal: \(proteinGoal) g")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    ProgressView(value: proteinProgress)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private var weeklySummarySection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("This week")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(weeklySummaries, id: \.date) { day in
+                        let weekday = Self.weekdayFormatter.string(from: day.date)
+                        let dayNum = Self.dayFormatter.string(from: day.date)
+                        WeeklyDayView(
+                            date: day.date,
+                            meetsGoal: day.meetsGoal,
+                            weekdayText: weekday,
+                            dayNumberText: dayNum
+                        )
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 4)
+            }
+        }
+    }
+
+    private struct WeeklyDayView: View {
+        let date: Date
+        let meetsGoal: Bool
+        let weekdayText: String
+        let dayNumberText: String
+
+        var body: some View {
+            VStack(spacing: 4) {
+                Text(weekdayText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            meetsGoal ? Color.green : Color.secondary.opacity(0.3),
+                            lineWidth: 2
+                        )
+                        .frame(width: 30, height: 30)
+
+                    if meetsGoal {
+                        Image(systemName: "checkmark")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                    } else {
+                        Text(dayNumberText)
+                            .font(.caption2)
+                    }
+                }
+            }
+        }
+    }
+
+    private struct TodayEntriesList: View {
+        let entries: [FoodEntry]
+        let onDelete: (_ idsToDelete: [UUID]) -> Void
+
+        var body: some View {
+            if entries.isEmpty {
+                Text("No entries yet. Use the button below to add your first meal.")
+                    .foregroundStyle(.secondary)
+                    .padding()
+                Spacer()
+            } else {
+                List {
+                    ForEach(entries) { entry in
+                        VStack(alignment: .leading) {
+                            Text(entry.name)
+                                .font(.headline)
+                            Text("\(entry.calories) kcal • \(entry.protein) g • \(entry.mealType.displayName)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onDelete { offsets in
+                        let ids = offsets.map { entries[$0].id }
+                        onDelete(ids)
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 // MAIN CONTENT
                 VStack(alignment: .leading, spacing: 16) {
+
                     // Header with totals + progress bars
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Calories")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("\(totalCalories)")
-                                    .font(.title2)
-                                    .bold()
-                                Text("Goal: \(calorieGoal) kcal")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                ProgressView(value: calorieProgress)
-                            }
-
-                            Spacer()
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Protein")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("\(totalProtein) g")
-                                    .font(.title2)
-                                    .bold()
-                                Text("Goal: \(proteinGoal) g")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                ProgressView(value: proteinProgress)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+                    headerSection
 
                     // Mini "this week" calendar
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("This week")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
-
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
-                                ForEach(weeklySummaries, id: \.date) { day in
-                                    VStack(spacing: 4) {
-                                        Text(Self.weekdayFormatter.string(from: day.date))
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-
-                                        ZStack {
-                                            Circle()
-                                                .strokeBorder(
-                                                    day.meetsGoal ? Color.green : Color.secondary.opacity(0.3),
-                                                    lineWidth: 2
-                                                )
-                                                .frame(width: 30, height: 30)
-
-                                            if day.meetsGoal {
-                                                Image(systemName: "checkmark")
-                                                    .font(.caption2)
-                                                    .foregroundStyle(.green)
-                                            } else {
-                                                Text(Self.dayFormatter.string(from: day.date))
-                                                    .font(.caption2)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 4)
-                        }
-                    }
+                    weeklySummarySection
 
                     // List of today's entries
-                    if todayEntries.isEmpty {
-                        Text("No entries yet. Use the button below to add your first meal.")
-                            .foregroundStyle(.secondary)
-                            .padding()
-                        Spacer()
-                    } else {
-                        List {
-                            ForEach(todayEntries) { entry in
-                                VStack(alignment: .leading) {
-                                    Text(entry.name)
-                                        .font(.headline)
-                                    Text("\(entry.calories) kcal • \(entry.protein) g • \(entry.mealType.displayName)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .onDelete { offsets in
-                                let idsToDelete = offsets.map { todayEntries[$0].id }
-                                allEntries.removeAll { idsToDelete.contains($0.id) }
-                            }
-                        }
+                    TodayEntriesList(entries: todayEntries) { idsToDelete in
+                        allEntries.removeAll { idsToDelete.contains($0.id) }
                     }
                 }
-
-                // FLOATING ADD MEAL BUTTON (bottom, centered)
-                VStack {
-                    Spacer()
-                    Button {
-                        showingAddFood = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 60, height: 60)
-                            .background(Color.blue)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
-                    }
-                    .padding(.bottom, 24)
-                }
+                .padding(.bottom, 90) // keeps content above bottom bar
             }
             .navigationTitle("Today")
             .toolbar {
-                // History button (left)
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
                         HistoryView()
@@ -198,7 +222,6 @@ struct ContentView: View {
                     }
                 }
 
-                // Only the Goals button in the top-right now
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         GoalSettingsView(
@@ -210,6 +233,35 @@ struct ContentView: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                ZStack {
+                    Color(.systemGray6)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 0) {
+                        Divider()   // ✅ only one line at the top of the bar
+                        Spacer()
+                    }
+
+                    Button {
+                        showingAddFood = true
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 64, height: 64)
+                                .shadow(radius: 6)
+
+                            Image(systemName: "plus")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .offset(y: -12)
+                }
+                .frame(height: 90)
+            }
             .sheet(isPresented: $showingAddFood) {
                 AddFoodView { newEntry in
                     allEntries.append(newEntry)
@@ -218,9 +270,10 @@ struct ContentView: View {
             .onAppear {
                 allEntries = FoodStorage.shared.loadEntries()
             }
-            .onChange(of: allEntries) { oldValue, newValue in
+            .onChange(of: allEntries) { _, newValue in
                 FoodStorage.shared.saveEntries(newValue)
             }
+            .background(Color(.systemGroupedBackground))
         }
     }
 }
