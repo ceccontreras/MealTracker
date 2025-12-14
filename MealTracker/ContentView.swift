@@ -195,23 +195,19 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                // MAIN CONTENT
-                VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with totals + progress bars
+                headerSection
 
-                    // Header with totals + progress bars
-                    headerSection
+                // Mini "this week" calendar
+                weeklySummarySection
 
-                    // Mini "this week" calendar
-                    weeklySummarySection
-
-                    // List of today's entries
-                    TodayEntriesList(entries: todayEntries) { idsToDelete in
-                        allEntries.removeAll { idsToDelete.contains($0.id) }
-                    }
+                // List of today's entries
+                TodayEntriesList(entries: todayEntries) { idsToDelete in
+                    allEntries.removeAll { idsToDelete.contains($0.id) }
                 }
-                .padding(.bottom, 90) // keeps content above bottom bar
             }
+            .padding(.bottom, 90) // keeps content above bottom bar
             .navigationTitle("Today")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -235,20 +231,19 @@ struct ContentView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 ZStack {
-                    Color(.systemGray6)
-                        .ignoresSafeArea()
-
-                    VStack(spacing: 0) {
-                        Divider()   // ✅ only one line at the top of the bar
-                        Spacer()
-                    }
-
+                    // Visible colored background bar
+                    Color.blue
+                        .ignoresSafeArea(edges: .bottom)
+                        .shadow(color: .black.opacity(0.1), radius: 10, y: -5)
+                    
+                    // Floating action button
                     Button {
                         showingAddFood = true
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(Color.blue)
+                                // Buttom
+                                .fill(Color.red)
                                 .frame(width: 64, height: 64)
                                 .shadow(radius: 6)
 
@@ -260,7 +255,7 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                     .offset(y: -12)
                 }
-                .frame(height: 90)
+                .frame(height: 20)
             }
             .sheet(isPresented: $showingAddFood) {
                 AddFoodView { newEntry in
