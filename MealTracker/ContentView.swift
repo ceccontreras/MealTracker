@@ -66,39 +66,103 @@ struct ContentView: View {
     // MARK: - Extracted subviews to help the type-checker
     @ViewBuilder
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Calories")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        HStack(spacing: 20) {
+            // Calories vertical bar
+            VStack(spacing: 8) {
+                // Value at top
+                VStack(spacing: 2) {
                     Text("\(totalCalories)")
-                        .font(.title2)
-                        .bold()
-                    Text("Goal: \(calorieGoal) kcal")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    ProgressView(value: calorieProgress)
-                }
-
-                Spacer()
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Protein")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundStyle(.primary)
+                    
+                    Text("kcal")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("\(totalProtein) g")
-                        .font(.title2)
-                        .bold()
-                    Text("Goal: \(proteinGoal) g")
+                }
+                
+                // Vertical progress bar
+                ZStack(alignment: .bottom) {
+                    // Background track
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.orange.opacity(0.2))
+                        .frame(width: 60, height: 180)
+                    
+                    // Progress fill
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.orange.opacity(0.8), Color.orange],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 60, height: 180 * calorieProgress)
+                }
+                
+                // Label at bottom
+                VStack(spacing: 4) {
+                    Text("Calories")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    
+                    Text("Goal: \(calorieGoal)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    ProgressView(value: proteinProgress)
+                }
+            }
+            
+            // Protein vertical bar
+            VStack(spacing: 8) {
+                // Value at top
+                VStack(spacing: 2) {
+                    Text("\(totalProtein)")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundStyle(.primary)
+                    
+                    Text("grams")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                // Vertical progress bar
+                ZStack(alignment: .bottom) {
+                    // Background track
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.2))
+                        .frame(width: 60, height: 180)
+                    
+                    // Progress fill
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.blue.opacity(0.8), Color.blue],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 60, height: 180 * proteinProgress)
+                }
+                
+                // Label at bottom
+                VStack(spacing: 4) {
+                    Text("Protein")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    
+                    Text("Goal: \(proteinGoal)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
         .padding(.horizontal)
-        .padding(.top, 8)
+        .padding(.vertical, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
+        )
+        .padding(.horizontal)
     }
 
     @ViewBuilder
@@ -196,8 +260,9 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                // Header with totals + progress bars
+                // Header with vertical progress bars
                 headerSection
+                    .padding(.top, 8)
 
                 // Mini "this week" calendar
                 weeklySummarySection
@@ -207,7 +272,7 @@ struct ContentView: View {
                     allEntries.removeAll { idsToDelete.contains($0.id) }
                 }
             }
-            .padding(.bottom, 90) // keeps content above bottom bar
+            .padding(.bottom, 90)
             .navigationTitle("Today")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -232,7 +297,7 @@ struct ContentView: View {
             .safeAreaInset(edge: .bottom) {
                 ZStack {
                     // Visible colored background bar
-                    Color.blue
+                    Color.white
                         .ignoresSafeArea(edges: .bottom)
                         .shadow(color: .black.opacity(0.1), radius: 10, y: -5)
                     
@@ -242,8 +307,7 @@ struct ContentView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                // Buttom
-                                .fill(Color.red)
+                                .fill(Color.blue)
                                 .frame(width: 64, height: 64)
                                 .shadow(radius: 6)
 
@@ -255,7 +319,7 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                     .offset(y: -12)
                 }
-                .frame(height: 20)
+                .frame(height: 90)
             }
             .sheet(isPresented: $showingAddFood) {
                 AddFoodView { newEntry in
