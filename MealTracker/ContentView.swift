@@ -67,6 +67,8 @@ struct ContentView: View {
     @ViewBuilder
     private var headerSection: some View {
         HStack(spacing: 20) {
+            Spacer()
+            
             // Calories vertical bar
             VStack(spacing: 8) {
                 // Value at top
@@ -154,6 +156,8 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            
+            Spacer()
         }
         .padding(.horizontal)
         .padding(.vertical, 20)
