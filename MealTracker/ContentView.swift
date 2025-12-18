@@ -279,24 +279,7 @@ struct ContentView: View {
             .padding(.bottom, 90)
             .navigationTitle("Today")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink {
-                        HistoryView()
-                    } label: {
-                        Image(systemName: "clock.arrow.circlepath")
-                    }
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        GoalSettingsView(
-                            calorieGoal: $calorieGoal,
-                            proteinGoal: $proteinGoal
-                        )
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
-                    }
-                }
+                // Remove toolbar items - moved to bottom bar
             }
             .safeAreaInset(edge: .bottom) {
                 ZStack {
@@ -305,23 +288,53 @@ struct ContentView: View {
                         .ignoresSafeArea(edges: .bottom)
                         .shadow(color: .black.opacity(0.1), radius: 10, y: -5)
                     
-                    // Floating action button
-                    Button {
-                        showingAddFood = true
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 64, height: 64)
-                                .shadow(radius: 6)
+                    HStack {
+                        // History button (left)
+                        NavigationLink {
+                            HistoryView()
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.primary)
+                                .frame(width: 50, height: 50)
+                        }
+                        
+                        Spacer()
+                        
+                        // Floating action button (center)
+                        Button {
+                            showingAddFood = true
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.blue)
+                                    .frame(width: 64, height: 64)
+                                    .shadow(radius: 6)
 
-                            Image(systemName: "plus")
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundStyle(.white)
+                                Image(systemName: "plus")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .offset(y: -12)
+                        
+                        Spacer()
+                        
+                        // Settings button (right)
+                        NavigationLink {
+                            GoalSettingsView(
+                                calorieGoal: $calorieGoal,
+                                proteinGoal: $proteinGoal
+                            )
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.primary)
+                                .frame(width: 50, height: 50)
                         }
                     }
-                    .buttonStyle(.plain)
-                    .offset(y: -12)
+                    .padding(.horizontal, 30)
                 }
                 .frame(height: 90)
             }
