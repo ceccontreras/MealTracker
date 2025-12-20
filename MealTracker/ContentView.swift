@@ -170,31 +170,37 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var weeklySummarySection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("This week")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal)
+        private var weeklySummarySection: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("This week")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(weeklySummaries, id: \.date) { day in
-                        let weekday = Self.weekdayFormatter.string(from: day.date)
-                        let dayNum = Self.dayFormatter.string(from: day.date)
-                        WeeklyDayView(
-                            date: day.date,
-                            meetsGoal: day.meetsGoal,
-                            weekdayText: weekday,
-                            dayNumberText: dayNum
-                        )
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(weeklySummaries, id: \.date) { day in
+                            let weekday = Self.weekdayFormatter.string(from: day.date)
+                            let dayNum = Self.dayFormatter.string(from: day.date)
+                            WeeklyDayView(
+                                date: day.date,
+                                meetsGoal: day.meetsGoal,
+                                weekdayText: weekday,
+                                dayNumberText: dayNum
+                            )
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 4)
             }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
+            )
+            .padding(.horizontal)
         }
-    }
 
     private struct WeeklyDayView: View {
         let date: Date

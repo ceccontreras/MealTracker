@@ -31,7 +31,7 @@ struct GoalSettingsView: View {
                 // Protein Goal Card
                 GoalCard(
                     icon: "leaf.fill",
-                    iconColor: .green,
+                    iconColor: .blue,
                     title: "Protein Goal",
                     value: $proteinGoal,
                     unit: "g",
