@@ -8,16 +8,20 @@ struct ContentView: View {
     @State private var allEntries: [FoodEntry] = []
     @State private var showingAddFood = false
 
+    // MARK: - Today filter
     private var todayEntries: [FoodEntry] {
         let calendar = Calendar.current
-        return allEntries.filter { calendar.isDateInToday($0.date) }
+        return allEntries
+            .filter { calendar.isDateInToday($0.date) }
+            .sorted { $0.date > $1.date }
     }
 
-    var totalCalories: Int {
+    // MARK: - Totals
+    private var totalCalories: Int {
         todayEntries.reduce(0) { $0 + $1.calories }
     }
 
-    var totalProtein: Int {
+    private var totalProtein: Int {
         todayEntries.reduce(0) { $0 + $1.protein }
     }
 
@@ -63,33 +67,29 @@ struct ContentView: View {
         return df
     }()
 
-    // MARK: - Extracted subviews to help the type-checker
+    // MARK: - Header Card
     @ViewBuilder
     private var headerSection: some View {
         HStack(spacing: 20) {
             Spacer()
-            
+
             // Calories vertical bar
             VStack(spacing: 8) {
-                // Value at top
                 VStack(spacing: 2) {
                     Text("\(totalCalories)")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.primary)
-                    
+
                     Text("kcal")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
-                // Vertical progress bar
+
                 ZStack(alignment: .bottom) {
-                    // Background track
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.orange.opacity(0.2))
                         .frame(width: 60, height: 180)
-                    
-                    // Progress fill
+
                     RoundedRectangle(cornerRadius: 12)
                         .fill(
                             LinearGradient(
@@ -100,40 +100,35 @@ struct ContentView: View {
                         )
                         .frame(width: 60, height: 180 * calorieProgress)
                 }
-                
-                // Label at bottom
+
                 VStack(spacing: 4) {
                     Text("Calories")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    
+
                     Text("Goal: \(calorieGoal)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             // Protein vertical bar
             VStack(spacing: 8) {
-                // Value at top
                 VStack(spacing: 2) {
                     Text("\(totalProtein)")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.primary)
-                    
+
                     Text("grams")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
-                // Vertical progress bar
+
                 ZStack(alignment: .bottom) {
-                    // Background track
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.blue.opacity(0.2))
                         .frame(width: 60, height: 180)
-                    
-                    // Progress fill
+
                     RoundedRectangle(cornerRadius: 12)
                         .fill(
                             LinearGradient(
@@ -144,19 +139,18 @@ struct ContentView: View {
                         )
                         .frame(width: 60, height: 180 * proteinProgress)
                 }
-                
-                // Label at bottom
+
                 VStack(spacing: 4) {
                     Text("Protein")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    
+
                     Text("Goal: \(proteinGoal)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             Spacer()
         }
         .padding(.horizontal)
@@ -167,40 +161,43 @@ struct ContentView: View {
                 .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
         )
         .padding(.horizontal)
+        .padding(.top, 8)
     }
 
+    // MARK: - Weekly Card
     @ViewBuilder
-        private var weeklySummarySection: some View {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("This week")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    private var weeklySummarySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("This week")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        ForEach(weeklySummaries, id: \.date) { day in
-                            let weekday = Self.weekdayFormatter.string(from: day.date)
-                            let dayNum = Self.dayFormatter.string(from: day.date)
-                            WeeklyDayView(
-                                date: day.date,
-                                meetsGoal: day.meetsGoal,
-                                weekdayText: weekday,
-                                dayNumberText: dayNum
-                            )
-                        }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(weeklySummaries, id: \.date) { day in
+                        let weekday = Self.weekdayFormatter.string(from: day.date)
+                        let dayNum = Self.dayFormatter.string(from: day.date)
+
+                        WeeklyDayView(
+                            date: day.date,
+                            meetsGoal: day.meetsGoal,
+                            weekdayText: weekday,
+                            dayNumberText: dayNum
+                        )
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
                 }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
-            )
-            .padding(.horizontal)
         }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
+        )
+        .padding(.horizontal)
+    }
 
     private struct WeeklyDayView: View {
         let date: Date
@@ -235,127 +232,130 @@ struct ContentView: View {
         }
     }
 
-    private struct TodayEntriesList: View {
-        let entries: [FoodEntry]
-        let onDelete: (_ idsToDelete: [UUID]) -> Void
+    // MARK: - Bottom Bar
+    private var bottomBar: some View {
+        ZStack {
+            Color.white
+                .ignoresSafeArea(edges: .bottom)
+                .shadow(color: .black.opacity(0.1), radius: 10, y: -5)
 
-        var body: some View {
-            if entries.isEmpty {
-                Text("No entries yet. Use the button below to add your first meal.")
-                    .foregroundStyle(.secondary)
-                    .padding()
+            HStack {
+                // History
+                NavigationLink {
+                    HistoryView()
+                } label: {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.primary)
+                        .frame(width: 50, height: 50)
+                }
+
                 Spacer()
-            } else {
-                List {
-                    ForEach(entries) { entry in
-                        VStack(alignment: .leading) {
-                            Text(entry.name)
-                                .font(.headline)
-                            Text("\(entry.calories) kcal • \(entry.protein) g • \(entry.mealType.displayName)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .onDelete { offsets in
-                        let ids = offsets.map { entries[$0].id }
-                        onDelete(ids)
+
+                // Add
+                Button {
+                    showingAddFood = true
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 64, height: 64)
+                            .shadow(radius: 6)
+
+                        Image(systemName: "plus")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundStyle(.white)
                     }
                 }
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
+                .buttonStyle(.plain)
+                .offset(y: -12)
+
+                Spacer()
+
+                // Settings
+                NavigationLink {
+                    GoalSettingsView(
+                        calorieGoal: $calorieGoal,
+                        proteinGoal: $proteinGoal
+                    )
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.primary)
+                        .frame(width: 50, height: 50)
+                }
             }
+            .padding(.horizontal, 30)
         }
+        .frame(height: 90)
     }
 
+    // MARK: - Body (single List = reliable layout)
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header with vertical progress bars
+            List {
                 headerSection
-                    .padding(.top, 8)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
 
-                // Mini "this week" calendar
                 weeklySummarySection
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
 
-                // List of today's entries
-                TodayEntriesList(entries: todayEntries) { idsToDelete in
-                    allEntries.removeAll { idsToDelete.contains($0.id) }
-                }
-            }
-            .padding(.bottom, 90)
-            .navigationTitle("Today")
-            .toolbar {
-                // Remove toolbar items - moved to bottom bar
-            }
-            .safeAreaInset(edge: .bottom) {
-                ZStack {
-                    // Visible colored background bar
-                    Color.white
-                        .ignoresSafeArea(edges: .bottom)
-                        .shadow(color: .black.opacity(0.1), radius: 10, y: -5)
-                    
-                    HStack {
-                        // History button (left)
-                        NavigationLink {
-                            HistoryView()
-                        } label: {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 24))
-                                .foregroundStyle(.primary)
-                                .frame(width: 50, height: 50)
-                        }
-                        
-                        Spacer()
-                        
-                        // Floating action button (center)
-                        Button {
-                            showingAddFood = true
-                        } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue)
-                                    .frame(width: 64, height: 64)
-                                    .shadow(radius: 6)
+                Section {
+                    if todayEntries.isEmpty {
+                        Text("No entries yet. Use the + button below to add your first meal.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(todayEntries) { entry in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(entry.name)
+                                    .font(.headline)
 
-                                Image(systemName: "plus")
-                                    .font(.system(size: 26, weight: .bold))
-                                    .foregroundStyle(.white)
+                                Text("\(entry.calories) kcal • \(entry.protein) g • \(entry.mealType.displayName)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 6)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    allEntries.removeAll { $0.id == entry.id }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
-                        .buttonStyle(.plain)
-                        .offset(y: -12)
-                        
-                        Spacer()
-                        
-                        // Settings button (right)
-                        NavigationLink {
-                            GoalSettingsView(
-                                calorieGoal: $calorieGoal,
-                                proteinGoal: $proteinGoal
-                            )
-                        } label: {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 24))
-                                .foregroundStyle(.primary)
-                                .frame(width: 50, height: 50)
-                        }
                     }
-                    .padding(.horizontal, 30)
+                } header: {
+                    Text("Entries")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .textCase(nil)
                 }
-                .frame(height: 90)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Today")
+
+            .safeAreaInset(edge: .bottom) {
+                bottomBar
+            }
+
             .sheet(isPresented: $showingAddFood) {
                 AddFoodView { newEntry in
                     allEntries.append(newEntry)
                 }
             }
+
             .onAppear {
                 allEntries = FoodStorage.shared.loadEntries()
             }
             .onChange(of: allEntries) { _, newValue in
                 FoodStorage.shared.saveEntries(newValue)
             }
-            .background(Color(.systemGroupedBackground))
         }
     }
 }
